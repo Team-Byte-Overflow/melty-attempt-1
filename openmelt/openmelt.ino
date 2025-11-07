@@ -37,7 +37,21 @@ static void wait_for_rc_good_and_zero_throttle() {
 //Arduino initial setup function
 void setup() {
   
+  // On 32u4-based boards (Leonardo, Micro, etc.) USB Serial can be clobbered
+  // by sleep/wake. Call USBDevice.attach() before opening Serial so the host
+  // re-enumerates the USB serial port if needed.
+#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_AVR_LEONARDO) || defined(ARDUINO_AVR_MICRO)
+  USBDevice.attach();
+  delay(100);
+#endif
   Serial.begin(115200);
+#if defined(__AVR_ATmega32U4__) || defined(ARDUINO_AVR_LEONARDO) || defined(ARDUINO_AVR_MICRO)
+  // Wait a short time for the host to enumerate the Serial port (non-blocking-ish)
+  unsigned long __usb_wait_start = millis();
+  while (!Serial && (millis() - __usb_wait_start) < 2000) {
+    delay(10);
+  }
+#endif
 
   //get motor drivers setup (and off!) first thing
   init_motors();
